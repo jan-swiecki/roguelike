@@ -5,6 +5,8 @@ import { WPhysicalObject } from './WPhysicalObject';
 import { WCamera } from './WCamera';
 import _ from "lodash";
 import { Stack } from "./Stack";
+import { log } from "./Logger";
+import { vectAdd } from './util';
 
 
 export type Vect1d = number
@@ -38,14 +40,17 @@ export class World {
     return player
   }
 
-  addCamera(pos: Vect2d, halfSize: Vect2d): WCamera {
+  addCamera({pos, halfSize}: {pos: Vect2d, halfSize: Vect2d}): WCamera {
     const camera = new WCamera(pos, halfSize, this)
     this.addObject(camera)
     return camera
   }
 
-  move(wobject: WPhysicalObject, to: Vect2d): void {
+  move(wobject: WPhysicalObject, moveVector: Vect2d): void {
+    const to = vectAdd(wobject.pos, moveVector)
+
     if(! this.isInside(to)) {
+      log('cannot move', to, 'from', wobject.pos)
       return
     }
 
@@ -55,16 +60,16 @@ export class World {
       throw new Error(`Object not added to map: ${JSON.stringify(wobject)}`)
     }
 
-    // this.removeFromMap(wobject)
-    wobject.internal_for_world_move(to)
+    this.removeFromMap(wobject)
+    wobject.internal_setPos(to)
+    log('move', wobject.appearance.char, 'to', to)
     this.addToMap(wobject)
     wobject.internal_after_move()
   }
 
   isInside(pos: Vect2d) {
     const [x, y] = pos
-    const i = y*this.width + x
-    return i >= 0 && i < this.size
+    return x >= 0 && x < this.width && y >= 0 && y < this.height
   }
 
   getTopElement(pos: Vect2d): WPhysicalObject {

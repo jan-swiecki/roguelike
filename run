@@ -4,6 +4,7 @@ esbuild \
   --sourcemap \
   --outdir=dist \
   --external:events \
+  --external:util \
   --external:stream \
   --external:string_decoder main.ts \
   && node dist/main.js

@@ -1,4 +1,5 @@
 import { EventEmitter } from "stream";
+import { log } from "./world/Logger";
 
 
 const keypress = require('keypress')
@@ -22,6 +23,7 @@ export class KeyHandler extends EventEmitter {
       this.emit('keypress', {ch, key})
       if (key && (key.ctrl && key.name == 'c' || key.name === 'q')) {
         process.stdin.pause();
+        this.emit('exit')
       }
     });
   

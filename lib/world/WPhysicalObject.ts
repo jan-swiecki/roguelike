@@ -21,7 +21,7 @@ export abstract class WPhysicalObject extends WObject {
     this.appearance = appearance
   }
 
-  internal_for_world_move(to: Vect2d) {
+  internal_setPos(to: Vect2d) {
     this.pos = to
   }
 

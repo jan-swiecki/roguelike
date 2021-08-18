@@ -3,9 +3,11 @@ import { WCreature } from './WCreature';
 import { TAppearance, WPhysicalObject } from './WPhysicalObject';
 import { World } from './World';
 import { Canvas } from '../Canvas';
-import { Stream, Writable } from 'stream';
+import { EventEmitter, Stream, Writable } from 'stream';
 import { WriteStream } from 'tty';
 import { Stack } from './Stack';
+import util from 'util'
+import { log } from './Logger';
 
 export class WCamera extends WPhysicalObject {
   private halfSize: Vect2d;
@@ -20,7 +22,12 @@ export class WCamera extends WPhysicalObject {
   
   private canvas: Canvas;
   private stream: WriteStream;
-  
+
+  private logMessage: string = ''
+
+  private nextTickCallbacks: CallableFunction[] = []
+  private events = new EventEmitter()
+  internal_renderPromise: Promise<void> = Promise.resolve()
 
   constructor(pos: Vect2d, halfSize: Vect2d, world: World) {
     super(pos, {
@@ -44,10 +51,17 @@ export class WCamera extends WPhysicalObject {
 
   override internal_after_move() {
     super.internal_after_move()
-    this.drawIntoCanvas()
+    // this.nextTick(() => this.drawIntoCanvas())
   }
 
-  drawIntoCanvas() {
+  private nextTick(callback: () => void) {
+    // this.nextTickCallbacks.push(callback)
+    // if(this.events.listenerCount('tick') === 0) {
+    //   this.once('tick')
+    // }
+  }
+
+  async drawIntoCanvas() {
     if(! this.canvas) {
       throw new Error("WCamera: You must attach canvas first")
     }
@@ -56,8 +70,8 @@ export class WCamera extends WPhysicalObject {
     let y = 0;
     let i = 0;
 
-    this.stream.cursorTo(0, 0)
-    this.stream.clearScreenDown()
+    await (this.internal_renderPromise = new Promise<void>(r => this.stream.cursorTo(0, 0, () => r())))
+    // await (this.internal_renderPromise = new Promise<void>(r => this.stream.clearScreenDown(() => r())))
 
     for(; i < this.nsize; i++) {
       x = i % this.width
@@ -67,6 +81,17 @@ export class WCamera extends WPhysicalObject {
         this.stream.write('\n')
       }
     }
+    // if(! this.stream.write(this.logMessage)) {
+    //   console.log('wait for drain')
+    //   await (this.internal_renderPromise = new Promise<void>(r => this.stream.once('drain', () => r())))
+    // }
+
+    await (this.internal_renderPromise = new Promise((r, rj) => {
+      this.stream.write(this.logMessage, err => err ? rj(err) : r())
+    }))
+
+    this.logMessage = ''
+
   }
 
   getCharAt(x: number, y: number): string {
@@ -83,6 +108,9 @@ export class WCamera extends WPhysicalObject {
       return 'X'
     } else {
       const elem = this.world.getTopElement(worldPos)
+      if(elem) {
+        log('elem', elem.appearance.char, 'at', elem.pos)
+      }
       return elem ? elem.appearance.char : '.'
     }
     // const iWorld = worldPosY * this.world.width + worldPosX
@@ -97,5 +125,10 @@ export class WCamera extends WPhysicalObject {
     //     return '.'
     //   }
     // }
+  }
+
+  log(...args) {
+    this.logMessage = args.map(m => util.format(m)).join(' ')+'\n' + this.logMessage
+    // this.drawIntoCanvas()
   }
 }

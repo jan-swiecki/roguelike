@@ -15,11 +15,20 @@ export class Canvas {
     // this.buffer = new Int8Array(this.width*this.height);
     this.buffer = new Array(this.width*this.height);
     this.buffer.fill('.')
+
+    // hide terminal cursor
+    // https://github.com/visionmedia/node-progress/issues/88#issuecomment-97873205
+    this.stream.write('\x1B[?25l')
   }
 
   async clear() {
-    this.stream.cursorTo(0, 0)
-    this.stream.clearScreenDown()
+    await new Promise<void>(r => this.stream.cursorTo(0, 0, () => r()))
+    await new Promise<void>(r => this.stream.clearScreenDown(() => r()))
+  }
+
+  onExit() {
+    // show terminal cursor
+    this.stream.write('\x1B[?25h')
   }
 
   randomBuffer() {
