@@ -58,6 +58,7 @@ export class World {
     // this.removeFromMap(wobject)
     wobject.internal_for_world_move(to)
     this.addToMap(wobject)
+    wobject.internal_after_move()
   }
 
   isInside(pos: Vect2d) {

@@ -42,8 +42,8 @@ export class WCamera extends WPhysicalObject {
     this.stream = canvas.getStream()
   }
 
-  override internal_for_world_move(to: Vect2d) {
-    super.internal_for_world_move(to)
+  override internal_after_move() {
+    super.internal_after_move()
     this.drawIntoCanvas()
   }
 
