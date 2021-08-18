@@ -4,56 +4,10 @@ import { WPlayer } from "./WPlayer";
 import { WPhysicalObject } from './WPhysicalObject';
 import { WCamera } from './WCamera';
 import _ from "lodash";
+import { Stack } from "./Stack";
 
 
 export type Vect1d = number
-
-export class Stack<T> {
-  private elems: Set<T> = new Set()
-  private elemsList: T[] = []
-  private positions: Map<T, number> = new Map()
-  private lastPosition: number = -1
-
-  add(elem: T) {
-    if(this.elems.has(elem)) {
-      return
-    }
-
-    this.elems.add(elem)
-    this.elemsList.push(elem)
-    this.positions.set(elem, this.lastPosition++)
-  }
-
-  topElem(): T {
-    return this.elemsList[this.lastPosition]
-  }
-
-  remove(elem: T) {
-    if(! this.elems.has(elem)) {
-      throw new Error(`Stack: no such elem: ${JSON.stringify(elem)}`)
-    }
-
-    this.elems.delete(elem)
-    this.positions.delete(elem)
-    this.resetStack()
-  }
-
-  private resetStack() {
-    const _elems: T[] = []
-    for(let [elem, position] of this.positions) {
-      _elems.push(elem)
-    }
-      
-    this.elemsList = []
-    this.elems.clear()
-    this.positions.clear()
-    this.lastPosition = -1;
-
-    for(const elem of _elems) {
-      this.add(elem)
-    }
-  }
-}
 
 export class World {
   public width = 100
@@ -90,26 +44,56 @@ export class World {
     return camera
   }
 
-  move(obj: WPhysicalObject, to: Vect2d): void {
-    const revMapPos = this.revMap.get(obj)
-    if(typeof revMapPos === 'undefined') {
-      throw new Error(`Object not added to map: ${JSON.stringify(obj)}`)
+  move(wobject: WPhysicalObject, to: Vect2d): void {
+    if(! this.isInside(to)) {
+      return
     }
-    obj.internal_for_world_move(to)
 
-    this.map[revMapPos].remove(obj)
-    this.map[to[0] + this.height * to[1]].add(obj)
+    const revMapIndex: Vect1d = this.revMap.get(wobject)
+
+    if(typeof revMapIndex === 'undefined') {
+      throw new Error(`Object not added to map: ${JSON.stringify(wobject)}`)
+    }
+
+    // this.removeFromMap(wobject)
+    wobject.internal_for_world_move(to)
+    this.addToMap(wobject)
+  }
+
+  isInside(pos: Vect2d) {
+    const [x, y] = pos
+    const i = y*this.width + x
+    return i >= 0 && i < this.size
+  }
+
+  getTopElement(pos: Vect2d): WPhysicalObject {
+    if(! this.isInside(pos)) {
+      return null
+    }
+
+    const [x, y] = pos
+    const i = y*this.width + x
+    return this.map[i].topElem()
   }
 
   private addObject(wobject: WPhysicalObject) {
     this.objects.push(wobject)
-    const [x, y] = wobject.pos
+    this.addToMap(wobject)
+    this.revObjects.set(wobject, this.objects.length - 1)
+  }
 
+  private addToMap(wobject: WPhysicalObject) {
+    const [x, y] = wobject.pos
     const i = y*this.width + x
     this.map[i].add(wobject)
-
-    this.revObjects.set(wobject, this.objects.length - 1)
     this.revMap.set(wobject, i)
+  }
+
+  private removeFromMap(wobject: WPhysicalObject) {
+    const [x, y] = wobject.pos
+    const i = y*this.width + x
+    this.map[i].remove(wobject)
+    this.revMap.delete(wobject)
   }
 
   public internal_getMapForCamera(): Array<Stack<WPhysicalObject>> {

@@ -5,6 +5,7 @@ import { World } from './World';
 import { Canvas } from '../Canvas';
 import { Stream, Writable } from 'stream';
 import { WriteStream } from 'tty';
+import { Stack } from './Stack';
 
 export class WCamera extends WPhysicalObject {
   private halfSize: Vect2d;
@@ -41,23 +42,12 @@ export class WCamera extends WPhysicalObject {
     this.stream = canvas.getStream()
   }
 
+  override internal_for_world_move(to: Vect2d) {
+    super.internal_for_world_move(to)
+    this.drawIntoCanvas()
+  }
+
   drawIntoCanvas() {
-    // let x = -this.halfSize[0] + this.pos[0];
-    // let y = -this.halfSize[1] + this.pos[1];
-    // let i: number
-
-    // const mx = this.halfSize[0] + this.pos[0]
-    // const my = this.halfSize[1] + this.pos[1]
-    // for(; x < mx; x++) {
-    //   for(; y < my; y++) {
-    //     // const obj = this.worldMap
-    //     this.stream.write('#')
-    //     if(x === this.width-1) {
-    //       this.stream.write('\n')
-    //     }
-    //   }
-    // }
-
     if(! this.canvas) {
       throw new Error("WCamera: You must attach canvas first")
     }
@@ -87,18 +77,25 @@ export class WCamera extends WPhysicalObject {
     // cw - (cc - xc)
     const worldPosX = cw[0] - cc[0] + xc[0]
     const worldPosY = cw[1] - cc[1] + xc[1]
+    const worldPos: Vect2d = [worldPosX, worldPosY]
 
-    const iWorld = this.world.height * worldPosY + worldPosX
-
-    if(iWorld < 0 || iWorld >= this.world.size) {
+    if(! this.world.isInside(worldPos)) {
       return 'X'
     } else {
-      const obj = this.worldMap[iWorld]
-      if(obj) {
-        return obj.appearance.char
-      } else {
-        return '.'
-      }
+      const elem = this.world.getTopElement(worldPos)
+      return elem ? elem.appearance.char : '.'
     }
+    // const iWorld = worldPosY * this.world.width + worldPosX
+
+    // if(iWorld < 0 || iWorld >= this.world.size) {
+    //   return 'X'
+    // } else {
+    //   const obj = this.worldMap[iWorld].topElem()
+    //   if(obj) {
+    //     return obj.appearance.char
+    //   } else {
+    //     return '.'
+    //   }
+    // }
   }
 }
