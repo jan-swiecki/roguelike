@@ -1,0 +1,9 @@
+esbuild \
+  --log-level=warning \
+  --bundle \
+  --sourcemap \
+  --outdir=dist \
+  --external:events \
+  --external:stream \
+  --external:string_decoder main.ts \
+  && node dist/main.js
